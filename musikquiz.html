@@ -20,10 +20,10 @@
         const { useState, useEffect } = React;
 
         // --- PKCE (Proof Key for Code Exchange) Hjälpfunktioner ---
-        // Används för att säkert autentisera mot Spotify utan klienthemlighet
+        // OBS: 'Uint8array' korrigerad till 'Uint8Array'
         function generateRandomString(length) {
             const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            const values = crypto.getRandomValues(new Uint8array(length));
+            const values = crypto.getRandomValues(new Uint8Array(length));
             return values.reduce((acc, x) => acc + possible[x % possible.length], "");
         }
 
@@ -34,7 +34,8 @@
         }
 
         function base64urlencode(a) {
-            return btoa(String.fromCharCode.apply(null, new Uint8array(a)))
+            // OBS: 'Uint8array' korrigerad till 'Uint8Array'
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(a)))
                 .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
         }
 
@@ -153,20 +154,16 @@
                 localStorage.removeItem('spotify_token');
             };
 
-            // searchSpotifySongs: UPPDATERAD FÖR BREDDARE SÖKNING
+            // searchSpotifySongs: SÖKNING MAXIMALT BREDDAD - Använder Wildcard '*'
             const searchSpotifySongs = async (decadeStart) => {
                 if (!spotifyToken) return null;
 
                 const decadeEnd = parseInt(decadeStart) + 9;
                 
-                // NY RANDOMISERING: Inkluderar en tom sträng ('') för att få bredare resultat.
-                const randomQueryList = ['a', 'love', 'the', 'you', 'heart', 'night', 'day', 'time', ''];
-                const randomQuery = randomQueryList[Math.floor(Math.random() * randomQueryList.length)];
-                
                 try {
-                    // Sök på årtiondespannet (t.ex. year:1980-1989)
+                    // SÖKSTRÄNG: Använder Wildcard * som sökterm för att få bredaste möjliga resultat inom årtiondet
                     const response = await fetch(
-                        `https://api.spotify.com/v1/search?q=${randomQuery}%20year:${decadeStart}-${decadeEnd}&type=track&limit=50`,
+                        `https://api.spotify.com/v1/search?q=$*%20year:${decadeStart}-${decadeEnd}&type=track&limit=50`,
                         {
                             headers: {
                                 'Authorization': `Bearer ${spotifyToken}`
