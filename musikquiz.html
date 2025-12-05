@@ -1,3 +1,10 @@
+Absolut, jag hjälper dig att uppdatera filen.
+
+Jag har implementerat **Authorization Code Flow med PKCE (Proof Key for Code Exchange)**, vilket är den moderna och säkra metoden Spotify rekommenderar för webbapplikationer. Detta fixar felet `unsupported_response_type`.
+
+Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga PKCE-hjälpfunktionerna och skrivit om funktionerna `connectSpotify`, `useEffect` och lagt till `getToken`.
+
+```html
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -18,6 +25,30 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
+
+        // --- Hjälpfunktioner för PKCE (Proof Key for Code Exchange) ---
+        function generateRandomString(length) {
+            const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const values = crypto.getRandomValues(new Uint8Array(length));
+            return values.reduce((acc, x) => acc + possible[x % possible.length], "");
+        }
+
+        async function sha256(plain) {
+            const encoder = new TextEncoder()
+            const data = encoder.encode(plain)
+            return window.crypto.subtle.digest('SHA-256', data)
+        }
+
+        function base64urlencode(a) {
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(a)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+        }
+
+        async function generateCodeChallenge(v) {
+            const hashed = await sha256(v)
+            return base64urlencode(hashed);
+        }
+        // -----------------------------------------------------------------
 
         const MusicQuizGame = () => {
             const [gameState, setGameState] = useState('setup');
@@ -41,28 +72,87 @@
             const SPOTIFY_REDIRECT_URI = 'https://reinel1969.github.io/MusikQuiz/musikquiz.html';
             const SPOTIFY_SCOPES = 'streaming user-read-email user-read-private';
 
+            // NY FUNKTION: Byter auktoriseringskoden mot en Access Token
+            const getToken = async (code, codeVerifier) => {
+                const url = "https://accounts.spotify.com/api/token";
+                
+                const payload = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        code: code,
+                        redirect_uri: SPOTIFY_REDIRECT_URI,
+                        client_id: SPOTIFY_CLIENT_ID,
+                        code_verifier: codeVerifier,
+                    }),
+                };
+                
+                try {
+                    const response = await fetch(url, payload);
+                    if (!response.ok) {
+                        throw new Error(`Spotify token exchange error: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    
+                    setSpotifyToken(data.access_token);
+                    setSpotifyConnected(true);
+                    localStorage.setItem('spotify_token', data.access_token);
+                    localStorage.removeItem('spotify_code_verifier');
+                    
+                } catch (error) {
+                    console.error('Kunde inte byta kod mot token:', error);
+                    alert('Ett fel uppstod vid anslutning till Spotify. Försök igen.');
+                }
+            };
+
+
+            // UPPDATERAD useEffect: Använder PKCE och letar efter "code" istället för "access_token"
             useEffect(() => {
-                const hash = window.location.hash;
-                if (hash) {
-                    const params = new URLSearchParams(hash.substring(1));
-                    const token = params.get('access_token');
-                    if (token) {
-                        setSpotifyToken(token);
-                        setSpotifyConnected(true);
-                        window.location.hash = '';
-                        localStorage.setItem('spotify_token', token);
+                // Hämta auktoriseringskoden från URL:ens query-sträng
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                const savedToken = localStorage.getItem('spotify_token');
+
+                if (code) {
+                    // Vi har en auktoriseringskod, nu byter vi den mot en access-token
+                    const codeVerifier = localStorage.getItem('spotify_code_verifier');
+                    
+                    if (codeVerifier) {
+                        getToken(code, codeVerifier);
                     }
-                } else {
-                    const savedToken = localStorage.getItem('spotify_token');
-                    if (savedToken) {
-                        setSpotifyToken(savedToken);
-                        setSpotifyConnected(true);
-                    }
+                    // Ta bort query-strängen i URL:en för att rensa
+                    window.history.replaceState({}, document.title, window.location.pathname);
+
+                } else if (savedToken) {
+                    // Använd sparad token om den finns
+                    setSpotifyToken(savedToken);
+                    setSpotifyConnected(true);
                 }
             }, []);
 
-            const connectSpotify = () => {
-                const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}&show_dialog=true`;
+            // UPPDATERAD connectSpotify: Implementerar PKCE-steget
+            const connectSpotify = async () => {
+                // 1. Generera Code Verifier & Challenge
+                const codeVerifier = generateRandomString(128);
+                const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+                localStorage.setItem('spotify_code_verifier', codeVerifier);
+
+                const params = new URLSearchParams({
+                    response_type: 'code', // ÄNDRAT TILL 'code' för PKCE-flödet
+                    client_id: SPOTIFY_CLIENT_ID,
+                    scope: SPOTIFY_SCOPES,
+                    redirect_uri: SPOTIFY_REDIRECT_URI,
+                    code_challenge_method: 'S256',
+                    code_challenge: codeChallenge,
+                    show_dialog: true
+                });
+
+                // 2. Skicka användaren till Spotify med PKCE-parametrarna
+                const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
                 window.location.href = authUrl;
             };
 
@@ -606,3 +696,4 @@
     </script>
 </body>
 </html>
+```
