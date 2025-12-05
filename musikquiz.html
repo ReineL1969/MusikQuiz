@@ -23,7 +23,7 @@
         // Används för att säkert autentisera mot Spotify utan klienthemlighet
         function generateRandomString(length) {
             const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            const values = crypto.getRandomValues(new Uint8Array(length));
+            const values = crypto.getRandomValues(new Uint8array(length));
             return values.reduce((acc, x) => acc + possible[x % possible.length], "");
         }
 
@@ -34,7 +34,7 @@
         }
 
         function base64urlencode(a) {
-            return btoa(String.fromCharCode.apply(null, new Uint8Array(a)))
+            return btoa(String.fromCharCode.apply(null, new Uint8array(a)))
                 .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
         }
 
@@ -153,17 +153,18 @@
                 localStorage.removeItem('spotify_token');
             };
 
-            // searchSpotifySongs: HÄMTAR LÅTAR - Uppdaterad för att söka på hela årtiondet
+            // searchSpotifySongs: UPPDATERAD FÖR BREDDARE SÖKNING
             const searchSpotifySongs = async (decadeStart) => {
                 if (!spotifyToken) return null;
 
                 const decadeEnd = parseInt(decadeStart) + 9;
                 
-                // Använd ett slumpmässigt men brett sökord för att få träffar
-                const randomQuery = ['a', 'love', 'the', 'you', 'heart', 'night', 'day', 'time'][Math.floor(Math.random() * 8)];
+                // NY RANDOMISERING: Inkluderar en tom sträng ('') för att få bredare resultat.
+                const randomQueryList = ['a', 'love', 'the', 'you', 'heart', 'night', 'day', 'time', ''];
+                const randomQuery = randomQueryList[Math.floor(Math.random() * randomQueryList.length)];
                 
                 try {
-                    // KORRIGERAD SÖKSTRÄNG: Sök på årtiondespannet (t.ex. year:1980-1989)
+                    // Sök på årtiondespannet (t.ex. year:1980-1989)
                     const response = await fetch(
                         `https://api.spotify.com/v1/search?q=${randomQuery}%20year:${decadeStart}-${decadeEnd}&type=track&limit=50`,
                         {
