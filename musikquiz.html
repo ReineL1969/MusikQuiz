@@ -1,10 +1,3 @@
-Absolut, jag hjälper dig att uppdatera filen.
-
-Jag har implementerat **Authorization Code Flow med PKCE (Proof Key for Code Exchange)**, vilket är den moderna och säkra metoden Spotify rekommenderar för webbapplikationer. Detta fixar felet `unsupported_response_type`.
-
-Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga PKCE-hjälpfunktionerna och skrivit om funktionerna `connectSpotify`, `useEffect` och lagt till `getToken`.
-
-```html
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -26,7 +19,8 @@ Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- Hjälpfunktioner för PKCE (Proof Key for Code Exchange) ---
+        // --- PKCE (Proof Key for Code Exchange) Hjälpfunktioner ---
+        // Används för att säkert autentisera mot Spotify utan klienthemlighet
         function generateRandomString(length) {
             const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             const values = crypto.getRandomValues(new Uint8Array(length));
@@ -72,7 +66,7 @@ Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga
             const SPOTIFY_REDIRECT_URI = 'https://reinel1969.github.io/MusikQuiz/musikquiz.html';
             const SPOTIFY_SCOPES = 'streaming user-read-email user-read-private';
 
-            // NY FUNKTION: Byter auktoriseringskoden mot en Access Token
+            // getToken: Byter auktoriseringskoden mot en Access Token (Del av PKCE)
             const getToken = async (code, codeVerifier) => {
                 const url = "https://accounts.spotify.com/api/token";
                 
@@ -109,31 +103,28 @@ Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga
             };
 
 
-            // UPPDATERAD useEffect: Använder PKCE och letar efter "code" istället för "access_token"
+            // useEffect: Hanterar omdirigering från Spotify med auktoriseringskoden
             useEffect(() => {
-                // Hämta auktoriseringskoden från URL:ens query-sträng
                 const urlParams = new URLSearchParams(window.location.search);
                 const code = urlParams.get('code');
                 const savedToken = localStorage.getItem('spotify_token');
 
                 if (code) {
-                    // Vi har en auktoriseringskod, nu byter vi den mot en access-token
                     const codeVerifier = localStorage.getItem('spotify_code_verifier');
                     
                     if (codeVerifier) {
                         getToken(code, codeVerifier);
                     }
-                    // Ta bort query-strängen i URL:en för att rensa
+                    // Rensar URL:en för att inte trigga om auktoriseringen vid omladdning
                     window.history.replaceState({}, document.title, window.location.pathname);
 
                 } else if (savedToken) {
-                    // Använd sparad token om den finns
                     setSpotifyToken(savedToken);
                     setSpotifyConnected(true);
                 }
             }, []);
 
-            // UPPDATERAD connectSpotify: Implementerar PKCE-steget
+            // connectSpotify: Startar PKCE-flödet genom att skicka användaren till Spotify
             const connectSpotify = async () => {
                 // 1. Generera Code Verifier & Challenge
                 const codeVerifier = generateRandomString(128);
@@ -142,7 +133,7 @@ Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga
                 localStorage.setItem('spotify_code_verifier', codeVerifier);
 
                 const params = new URLSearchParams({
-                    response_type: 'code', // ÄNDRAT TILL 'code' för PKCE-flödet
+                    response_type: 'code', // KORREKT: response_type för PKCE-flödet
                     client_id: SPOTIFY_CLIENT_ID,
                     scope: SPOTIFY_SCOPES,
                     redirect_uri: SPOTIFY_REDIRECT_URI,
@@ -151,7 +142,7 @@ Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga
                     show_dialog: true
                 });
 
-                // 2. Skicka användaren till Spotify med PKCE-parametrarna
+                // 2. Skicka användaren till Spotify
                 const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
                 window.location.href = authUrl;
             };
@@ -162,21 +153,19 @@ Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga
                 localStorage.removeItem('spotify_token');
             };
 
+            // searchSpotifySongs: HÄMTAR LÅTAR - Uppdaterad för att söka på hela årtiondet
             const searchSpotifySongs = async (decadeStart) => {
                 if (!spotifyToken) return null;
 
                 const decadeEnd = parseInt(decadeStart) + 9;
-                const years = [];
-                for (let y = parseInt(decadeStart); y <= decadeEnd; y++) {
-                    years.push(y);
-                }
-
+                
+                // Använd ett slumpmässigt men brett sökord för att få träffar
+                const randomQuery = ['a', 'love', 'the', 'you', 'heart', 'night', 'day', 'time'][Math.floor(Math.random() * 8)];
+                
                 try {
-                    const year = years[Math.floor(Math.random() * years.length)];
-                    const randomQuery = ['a', 'love', 'the', 'you', 'heart', 'night', 'day', 'time'][Math.floor(Math.random() * 8)];
-                    
+                    // KORRIGERAD SÖKSTRÄNG: Sök på årtiondespannet (t.ex. year:1980-1989)
                     const response = await fetch(
-                        `https://api.spotify.com/v1/search?q=${randomQuery}%20year:${year}&type=track&limit=50`,
+                        `https://api.spotify.com/v1/search?q=${randomQuery}%20year:${decadeStart}-${decadeEnd}&type=track&limit=50`,
                         {
                             headers: {
                                 'Authorization': `Bearer ${spotifyToken}`
@@ -194,13 +183,17 @@ Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga
                     }
 
                     const data = await response.json();
+                    
+                    // Filtrerar bort låtar utan preview_url och låtar som redan använts
                     const tracks = data.tracks.items.filter(track => 
                         track.preview_url && 
                         !usedSongs.includes(track.id) &&
                         track.album.release_date
                     );
 
-                    if (tracks.length === 0) return null;
+                    if (tracks.length === 0) {
+                        return null; // Kunde inte hitta oanvända låtar med preview
+                    }
 
                     const track = tracks[Math.floor(Math.random() * tracks.length)];
                     const releaseYear = parseInt(track.album.release_date.split('-')[0]);
@@ -659,41 +652,3 @@ Här är din uppdaterade `musikquiz.html`-fil. Jag har lagt till de nödvändiga
                                 <div className="w-24 h-24 mx-auto mb-4">
                                     <TrophyIcon />
                                 </div>
-                                <h1 className="text-4xl font-bold text-gray-800 mb-2">Spelet är slut!</h1>
-                                <p className="text-2xl text-gray-600">Vinnare: <span className="text-yellow-600 font-bold">{winner}</span></p>
-                            </div>
-
-                            <div className="space-y-4 mb-8">
-                                {getSortedPlayers().map((player, index) => (
-                                    <div
-                                        key={player}
-                                        className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl"
-                                    >
-                                        <div className="flex items-center">
-                                            <span className="text-3xl mr-4">
-                                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
-                                            </span>
-                                            <span className="text-xl font-semibold text-gray-700">{player}</span>
-                                        </div>
-                                        <span className="text-2xl font-bold text-purple-600">{scores[player]} poäng</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button
-                                onClick={resetGame}
-                                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl text-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all"
-                            >
-                                Spela igen
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-        };
-
-        ReactDOM.render(<MusicQuizGame />, document.getElementById('root'));
-    </script>
-</body>
-</html>
-```
