@@ -652,3 +652,40 @@
                                 <div className="w-24 h-24 mx-auto mb-4">
                                     <TrophyIcon />
                                 </div>
+                                <h1 className="text-4xl font-bold text-gray-800 mb-2">Spelet är slut!</h1>
+                                <p className="text-2xl text-gray-600">Vinnare: <span className="text-yellow-600 font-bold">{winner}</span></p>
+                            </div>
+
+                            <div className="space-y-4 mb-8">
+                                {getSortedPlayers().map((player, index) => (
+                                    <div
+                                        key={player}
+                                        className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl"
+                                    >
+                                        <div className="flex items-center">
+                                            <span className="text-3xl mr-4">
+                                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
+                                            </span>
+                                            <span className="text-xl font-semibold text-gray-700">{player}</span>
+                                        </div>
+                                        <span className="text-2xl font-bold text-purple-600">{scores[player]} poäng</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={resetGame}
+                                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl text-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all"
+                            >
+                                Spela igen
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+        };
+
+        ReactDOM.render(<MusicQuizGame />, document.getElementById('root'));
+    </script>
+</body>
+</html>
