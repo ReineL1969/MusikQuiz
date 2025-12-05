@@ -23,7 +23,7 @@
         // OBS: 'Uint8array' korrigerad till 'Uint8Array'
         function generateRandomString(length) {
             const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            const values = crypto.getRandomValues(new Uint8Array(length));
+            const values = crypto.getRandomValues(new Uint8Array(length)); 
             return values.reduce((acc, x) => acc + possible[x % possible.length], "");
         }
 
@@ -154,7 +154,7 @@
                 localStorage.removeItem('spotify_token');
             };
 
-            // searchSpotifySongs: SÖKNING MAXIMALT BREDDAD - Använder Wildcard '*'
+            // searchSpotifySongs: MAXIMAL SÖKNINGSBRÄDD - Använder Wildcard '*'
             const searchSpotifySongs = async (decadeStart) => {
                 if (!spotifyToken) return null;
 
