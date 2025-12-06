@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reine Lindqvist's Musikquiz - Avancerad</title>
+    <title>Reine Lindqvist's Musikquiz - Dashboard</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -12,45 +12,51 @@
             color: #333;
         }
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             background: #fff;
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #1DB954; /* Spotify Green */
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .control-group {
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            background-color: #fafafa;
-        }
-        .control-group h3 {
-            margin-top: 0;
-            color: #1DB954;
-        }
-        .decade-choices, .player-setup {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 20px;
         }
-        label {
-            cursor: pointer;
+        h1 {
+            color: #1DB954;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 25px;
         }
-        input[type="checkbox"] {
-            margin-right: 5px;
+        .control-panel, .score-dashboard {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fafafa;
+            flex: 1;
+            min-width: 350px;
         }
-        input[type="number"], button {
+        .control-panel h3, .score-dashboard h3 {
+            margin-top: 0;
+            color: #1DB954;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+        }
+        .decade-choices {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        label { cursor: pointer; }
+        input[type="text"], input[type="number"], button, select {
             padding: 10px 15px;
             border-radius: 5px;
             border: 1px solid #ccc;
             font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
         }
         button {
             background-color: #1DB954;
@@ -58,115 +64,98 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        button:hover {
-            background-color: #17a447;
-        }
-        .player-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 15px;
-        }
+        button:hover { background-color: #17a447; }
+        
+        /* Dashboard Styling */
+        .score-dashboard { order: -1; /* Visas först */ }
+        .player-list { list-style: none; padding: 0; }
         .player-list li {
-            padding: 5px 0;
-            border-bottom: 1px dotted #eee;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px dotted #ccc;
+            font-size: 1.1em;
+        }
+        .current-player {
+            background-color: #ffe0b2; /* Lätt orange för att markera aktiv spelare */
+            font-weight: bold;
         }
         .quiz-output {
+            width: 100%;
             padding: 20px;
             border: 2px solid #eee;
             border-radius: 8px;
             background-color: #fafafa;
-        }
-        .guess-area {
             margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
         }
-        .guess-area input {
-            display: block;
-            width: 90%;
-            margin-bottom: 10px;
-        }
-        .error {
-            color: #ff4d4d;
-            font-weight: bold;
-        }
-        .success {
-            color: #1DB954;
-            font-weight: bold;
-        }
-        audio {
-            width: 100%;
-            margin-top: 15px;
-        }
+        .error { color: #ff4d4d; font-weight: bold; }
+        .success { color: #1DB954; font-weight: bold; }
+        audio { width: 100%; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>🎵 Musikquiz: Konfigurera Spel</h1>
+        <h1>🎵 Musikquiz: Spelledarpanel</h1>
+        
+        <div class="control-panel">
+            <h3>Spelinställningar</h3>
+            
+            <label for="num-players">Antal spelare (1-10):</label>
+            <input type="number" id="num-players" min="1" max="10" value="1" onchange="setupPlayers()">
+            
+            <div id="player-names-input">
+                </div>
+            
+            <hr style="margin: 15px 0;">
 
-        <div class="control-group">
-            <h3>Spelare & Årtionden</h3>
-            <div class="player-setup">
-                <label for="num-players">Antal spelare (1-10):</label>
-                <input type="number" id="num-players" min="1" max="10" value="1" onchange="setupPlayers()">
+            <h3>Välj Årtionden</h3>
+            <div id="decade-choices" class="decade-choices">
+                <label><input type="checkbox" value="60s" checked> 60-talet</label>
+                <label><input type="checkbox" value="70s" checked> 70-talet</label>
+                <label><input type="checkbox" value="80s" checked> 80-talet</label>
+                <label><input type="checkbox" value="90s" checked> 90-talet</label>
+                <label><input type="checkbox" value="00s" checked> 2000-talet</label>
+                <label><input type="checkbox" value="10s" checked> 2010-talet</label>
+                <label><input type="checkbox" value="20s" checked> 2020-talet</label>
             </div>
+            <button onclick="startNewRound()">Starta Ny Quiz-Runda</button>
+        </div>
+
+        <div class="score-dashboard">
+            <h3>Poängställning</h3>
+            <p id="current-player-status">Konfigurera spelet och klicka Starta Runda.</p>
             <ul id="player-scores" class="player-list">
                 </ul>
         </div>
-
-        <div class="control-group">
-            <h3>Välj Årtionden</h3>
-            <div id="decade-choices" class="decade-choices">
-                <label><input type="checkbox" value="60s"> 60-talet</label>
-                <label><input type="checkbox" value="70s"> 70-talet</label>
-                <label><input type="checkbox" value="80s"> 80-talet</label>
-                <label><input type="checkbox" value="90s"> 90-talet</label>
-                <label><input type="checkbox" value="00s"> 2000-talet</label>
-                <label><input type="checkbox" value="10s"> 2010-talet</label>
-                <label><input type="checkbox" value="20s"> 2020-talet</label>
-            </div>
-            <button onclick="startNewRound()" style="margin-top: 15px;">Starta Ny Quiz-Runda</button>
-        </div>
-
+        
         <div id="quiz-output" class="quiz-output">
-            <p>Välj årtionde/n och antal spelare. Klicka på **Starta Ny Quiz-Runda**.</p>
+            <p>Välj inställningar och klicka på **Starta Ny Quiz-Runda**.</p>
         </div>
         
-        <div id="guess-section" class="guess-area" style="display: none;">
-            <h3>Gissning & Poäng</h3>
-            <p>Låten spelas upp. Ange dina gissningar nedan:</p>
+        <div id="scoring-section" class="quiz-output" style="display: none; width: 100%;">
+            <h3>Poänginmatning</h3>
+            <p id="current-player-scoring"></p>
             
-            <label for="guess-artist">Artist:</label>
-            <input type="text" id="guess-artist">
+            <label for="input-score">Ange erhållna poäng (0, 1, 2, 3 eller 5):</label>
+            <input type="number" id="input-score" min="0" max="5" value="0">
             
-            <label for="guess-title">Låttitel:</label>
-            <input type="text" id="guess-title">
-            
-            <label for="guess-year">Utgivningsår:</label>
-            <input type="number" id="guess-year" min="1900" max="2030">
-            
-            <label for="current-player-select">Vem gissade?</label>
-            <select id="current-player-select"></select>
-            
-            <button onclick="submitGuess()">Rätta Gissning & Dela ut Poäng</button>
+            <button onclick="submitScore()">Låten Rättad & Ge Poäng</button>
         </div>
     </div>
 
     <script>
         // *******************************************************************
-        // KONTROLLPUNKT 1: ERSÄTT DENNA STRÄNG MED DIN FULLSTÄNDIGA ACCESS TOKEN!
-        // (Token är giltig i ca 1 timme)
-        const SPOTIFY_ACCESS_TOKEN = "BQBOAEBL2E0h4s6-p5BckzcnSOEt53yp7lEaraTh_nYAHOAKQ_8f5oDUej39nCq92t8oy3OoWBW7gM12ZAfetE4ucKFCsnxe4GYIdS-4-3tI9oRmbmcrYXbDI_N...
-"; 
+        // KONTROLLPUNKT 1: ACCESS TOKEN ÄR INKLUDERAD HÄR
+        // Token är giltig i ca 1 timme.
+        const SPOTIFY_ACCESS_TOKEN = "BQBOAEBL2E0h4s6-p5BckzcnSOEt53yp7lEaraTh_nYAHOAKQ_8f5oDUej39nCq92t8oy3OoWBW7gM12ZAfetE4ucKFCsnxe4GYIdS-4-3tI9oRmbmcrYXbDI_N..."; 
         // *******************************************************************
 
         // Globala variabler för speldata
         let players = [];
-        let currentAnswer = null; // Lagrar facit för den aktuella låten
+        let currentPlayerIndex = 0; // Index för den spelare vars tur det är (börjar på 0)
         
-        // 1. Spelliste-ID per Årtionde (Spotify 'All Out' spellistor)
+        // Spotify API-konstanter
         const playlistSources = {
             '60s': '37i9dQZF1DXcKqP3JdK0pQ', 
             '70s': '37i9dQZF1DWTJg7XNnKFE3', 
@@ -174,40 +163,76 @@
             '90s': '37i9dQZF1DXbTjV1dE9zY7', 
             '00s': '37i9dQZF1DX4oNzlhCrbxM', 
             '10s': '37i9dQZF1DX5BAW6M0K4Vf', 
-            '20s': '37i9dQZF1DXcBWIGoYBM5M', // Today's Top Hits
+            '20s': '37i9dQZF1DXcBWIGoYBM5M',
         };
         const MAX_SONGS_TO_CHECK = 100; 
 
         // Initialiserar spelarlistan vid start
         setupPlayers(); 
 
-        /** * Hanterar inställning och visning av spelare
+        /** * Hanterar inställning och visning av spelare (namn och poäng)
          */
         function setupPlayers() {
             const num = parseInt(document.getElementById('num-players').value);
-            const playerList = document.getElementById('player-scores');
-            const playerSelect = document.getElementById('current-player-select');
+            const nameInputDiv = document.getElementById('player-names-input');
             
-            // Behåller poängen för befintliga spelare
-            let existingPlayers = players.slice(0, num);
-            players = [];
-            playerList.innerHTML = '';
-            playerSelect.innerHTML = '';
-
+            // 1. Hantera namninmatningsfälten
+            nameInputDiv.innerHTML = '';
+            // Skapa temporär array för att hålla reda på befintliga namn/poäng
+            let tempPlayers = [];
             for (let i = 1; i <= num; i++) {
-                const name = existingPlayers[i - 1]?.name || `Spelare ${i}`;
-                const score = existingPlayers[i - 1]?.score || 0;
-
-                players.push({ id: i, name: name, score: score });
+                const existingPlayer = players.find(p => p.id === i) || { name: `Spelare ${i}`, score: 0 };
                 
-                // Uppdatera spelarlistan i gränssnittet
-                playerList.innerHTML += `<li id="player-${i}"><strong>${name}:</strong> ${score} poäng</li>`;
-                
-                // Uppdatera spelarväljaren för gissningar
-                playerSelect.innerHTML += `<option value="${i}">${name}</option>`;
+                nameInputDiv.innerHTML += `
+                    <input type="text" id="player-name-${i}" placeholder="Namn Spelare ${i}" value="${existingPlayer.name}">
+                `;
+                tempPlayers.push({ id: i, name: existingPlayer.name, score: existingPlayer.score });
             }
+            
+            // 2. Uppdatera spelarlistan i players[]
+            players = tempPlayers;
+            
+            // Rita om Dashboard och markera aktuell spelare
+            updateDashboard();
         }
 
+        /**
+         * Uppdaterar poängställningen i Dashboard och markerar aktuell spelare.
+         */
+        function updateDashboard() {
+            const playerList = document.getElementById('player-scores');
+            const status = document.getElementById('current-player-status');
+            
+            // Spara eventuella nya namn från inputfälten
+            players.forEach((player, index) => {
+                const nameInput = document.getElementById(`player-name-${player.id}`);
+                if (nameInput) {
+                    player.name = nameInput.value.trim();
+                }
+            });
+            
+            // Sortera spelare efter poäng (högst först)
+            const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+            
+            playerList.innerHTML = '';
+            sortedPlayers.forEach((player, index) => {
+                const isCurrent = player.id === players[currentPlayerIndex]?.id;
+                playerList.innerHTML += `
+                    <li id="player-score-id-${player.id}" class="${isCurrent ? 'current-player' : ''}">
+                        <span>${player.name}</span>
+                        <span>${player.score} poäng</span>
+                    </li>
+                `;
+            });
+            
+            const activePlayer = players[currentPlayerIndex];
+            if (activePlayer) {
+                status.innerHTML = `<strong>Nästa:</strong> ${activePlayer.name}'s tur att gissa.`;
+                // Se till att den aktiva spelaren är markerad korrekt efter sortering
+                document.getElementById(`player-score-id-${activePlayer.id}`)?.classList.add('current-player');
+            }
+        }
+        
         /**
          * Väljer ett slumpmässigt årtionde från de markerade.
          */
@@ -221,30 +246,35 @@
         }
 
         /**
-         * Startar en ny omgång genom att hämta en låt.
+         * Startar en ny omgång genom att hämta och spela upp en låt.
          */
         async function startNewRound() {
+            setupPlayers(); // Spara eventuella nya spelarnamn och uppdatera listan
+            
             const selectedDecade = selectRandomDecade();
             const outputElement = document.getElementById('quiz-output');
             
-            document.getElementById('guess-section').style.display = 'none'; // Dölj gissningsfältet
-            currentAnswer = null; // Återställ facit
+            document.getElementById('scoring-section').style.display = 'none'; // Dölj poängfältet
 
+            if (players.length === 0 || players[0].name === 'Spelare 1') {
+                // Enkel check för att säkerställa att spelare är konfigurerade
+                outputElement.innerHTML = `<p class="error">❌ Vänligen ange spelare (minst en) och deras namn.</p>`;
+                return;
+            }
             if (!selectedDecade) {
                 outputElement.innerHTML = `<p class="error">❌ Vänligen välj minst ett årtionde att spela från.</p>`;
                 return;
             }
-            if (SPOTIFY_ACCESS_TOKEN === "BQBOAEBL2E0h4s6-p5BckzcnSOEt53yp7lEaraTh_nYAHOAKQ_8f5oDUej39nCq92t8oy3OoWBW7gM12ZAfetE4ucKFCsnxe4GYIdS-4-3tI9oRmbmcrYXbDI_N...
-" || SPOTIFY_ACCESS_TOKEN === "") {
-                outputElement.innerHTML = `<p class="error">❌ FEL: Vänligen klistra in din Spotify Access Token i koden.</p>`;
+            if (SPOTIFY_ACCESS_TOKEN.length < 50) { // Enkel längdkontroll
+                outputElement.innerHTML = `<p class="error">❌ FEL: Din Access Token verkar vara inkorrekt eller utgången.</p>`;
                 return;
             }
             
             const playlistId = playlistSources[selectedDecade];
-            outputElement.innerHTML = `<p class="success">Laddar låt från **${selectedDecade}** (Playlist ID: ${playlistId}). Vänligen vänta...</p>`;
+            outputElement.innerHTML = `<p class="success">Laddar låt för **${players[currentPlayerIndex].name}** från ${selectedDecade}... Vänligen vänta...</p>`;
 
             try {
-                // 2. RIKTIGT API-ANROP till Spotify
+                // RIKTIGT API-ANROP till Spotify
                 const apiUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${MAX_SONGS_TO_CHECK}`;
                 const response = await fetch(apiUrl, {
                     headers: {
@@ -262,7 +292,7 @@
                 const data = await response.json();
                 const tracks = data.items.filter(item => item.track); 
                 
-                // 3. Filtrera och välj låt
+                // Filtrera och välj låt
                 const tracksWithPreview = tracks.filter(item => item.track.preview_url !== null);
 
                 if (tracksWithPreview.length === 0) {
@@ -274,37 +304,21 @@
                 const randomTrack = tracksWithPreview[randomIndex].track;
                 const artistName = randomTrack.artists.map(a => a.name).join(', ');
                 
-                // EXTRA ANROP: Hämta albumdata för Utgivningsår (release_date)
-                // Obs: Detta steg kräver ett extra API-anrop per låt, vilket kan vara långsamt
-                let releaseYear = 'Okänt';
-                if (randomTrack.album?.id) {
-                    const albumUrl = `https://api.spotify.com/v1/...{randomTrack.album.id}`;
-                    const albumResponse = await fetch(albumUrl, {
-                        headers: { 'Authorization': `Bearer ${SPOTIFY_ACCESS_TOKEN}` }
-                    });
-                    if (albumResponse.ok) {
-                        const albumData = await albumResponse.json();
-                        releaseYear = albumData.release_date ? albumData.release_date.substring(0, 4) : 'Okänt';
-                    }
-                }
-                
-                // Lagra facit
-                currentAnswer = {
-                    artist: artistName.toLowerCase().split(' & ')[0], // Enkelt format
-                    title: randomTrack.name.toLowerCase().replace(/ \(.+\)/, ''), // Ta bort t.ex. (Remastered)
-                    year: releaseYear,
-                    preview_url: randomTrack.preview_url
-                };
-
                 // 4. Visa Låtinformation och Spela Upp
                 outputElement.innerHTML = `
-                    <h2>▶️ Spelar Klipp...</h2>
+                    <h2>▶️ Spelar Klipp för ${players[currentPlayerIndex].name}...</h2>
                     <p><strong>Årtionde:</strong> ${selectedDecade}</p>
-                    <p class="success">Lyssna noga! Gör din gissning i fältet nedan.</p>
+                    <p class="success">Låt **${players[currentPlayerIndex].name}** gissa. Klippet spelas upp.</p>
                     <audio controls autoplay src="${randomTrack.preview_url}"></audio>
+                    <hr>
+                    <p><strong>RÄTT SVAR (För Spelledaren):</strong> ${artistName} - ${randomTrack.name}</p>
                 `;
                 
-                document.getElementById('guess-section').style.display = 'block'; // Visa gissningsfältet
+                // Förbered poänginmatningssektionen
+                document.getElementById('current-player-scoring').innerHTML = `
+                    **${players[currentPlayerIndex].name}** gissade nyss. Mata in deras poäng:
+                `;
+                document.getElementById('scoring-section').style.display = 'block';
 
             } catch (error) {
                 console.error("Fel vid laddning av låt:", error);
@@ -313,64 +327,53 @@
         }
 
         /**
-         * Rättar gissningen, beräknar poäng och uppdaterar spelarlistan.
+         * Hanterar poänginmatning av spelledaren och går vidare till nästa spelare.
          */
-        function submitGuess() {
-            if (!currentAnswer) {
-                alert("Starta en ny runda först!");
+        function submitScore() {
+            const scoreInput = parseInt(document.getElementById('input-score').value);
+            const maxScore = 5;
+
+            if (scoreInput < 0 || scoreInput > maxScore || isNaN(scoreInput)) {
+                alert(`Poäng måste vara mellan 0 och ${maxScore}.`);
                 return;
             }
-
-            const playerId = document.getElementById('current-player-select').value;
-            const playerIndex = players.findIndex(p => p.id == playerId);
-            const player = players[playerIndex];
-
-            // 1. Hämta gissningar
-            const guessArtist = document.getElementById('guess-artist').value.trim().toLowerCase();
-            const guessTitle = document.getElementById('guess-title').value.trim().toLowerCase();
-            const guessYear = document.getElementById('guess-year').value.trim();
-
-            let correctCount = 0;
-            let currentPoints = 0;
-            let feedback = '<ul>';
-
-            // 2. Rättningslogik (enkel jämförelse)
-            const artistCorrect = currentAnswer.artist.includes(guessArtist) && guessArtist.length > 2;
-            const titleCorrect = currentAnswer.title.includes(guessTitle) && guessTitle.length > 2;
-            const yearCorrect = currentAnswer.year === guessYear;
             
-            if (artistCorrect) { correctCount++; feedback += '<li>✅ Artist: Rätt!</li>'; } else { feedback += `<li>❌ Artist: Fel. Rätt svar var: ${currentAnswer.artist}</li>`; }
-            if (titleCorrect) { correctCount++; feedback += '<li>✅ Titel: Rätt!</li>'; } else { feedback += `<li>❌ Titel: Fel. Rätt svar var: ${currentAnswer.title}</li>`; }
-            if (yearCorrect) { correctCount++; feedback += '<li>✅ År: Rätt!</li>'; } else { feedback += `<li>❌ År: Fel. Rätt svar var: ${currentAnswer.year}</li>`; }
-
-            // 3. Poängberäkning
-            if (correctCount === 3) {
-                currentPoints = 5; // 5 poäng för allt rätt
-            } else {
-                currentPoints = correctCount; // 1 poäng per rätt svar
+            const player = players[currentPlayerIndex];
+            const currentAudio = document.querySelector('#quiz-output audio');
+            if (currentAudio) {
+                currentAudio.pause(); // Stoppa uppspelningen när poängen ges
             }
-
-            // 4. Uppdatera poängen
-            player.score += currentPoints;
             
-            // 5. Visa resultat och uppdatera gränssnittet
-            const finalFeedback = `
-                <h2>⭐ Poäng Rättade!</h2>
-                <p><strong>${player.name}</strong> fick <strong>${currentPoints} poäng</strong> i denna runda.</p>
-                <p>Totalt: ${player.score} poäng.</p>
-                ${feedback}</ul>
-                <p>Rätt låt: <strong>${currentAnswer.artist} - ${currentAnswer.title} (${currentAnswer.year})</strong></p>
+            player.score += scoreInput;
+            
+            // Visa feedback
+            const feedback = `
+                <h2>⭐ Runda Avslutad!</h2>
+                <p><strong>${player.name}</strong> fick <strong>${scoreInput} poäng</strong>.</p>
+                <p>Total poäng: ${player.score}.</p>
+                <p class="success"><strong>KLICKA PÅ STARTA NY QUIZ-RUNDA FÖR ATT GÅ VIDARE TILL NÄSTA SPELARE!</strong></p>
             `;
             
-            document.getElementById('quiz-output').innerHTML = finalFeedback;
-            document.getElementById(`player-${player.id}`).innerHTML = `<strong>${player.name}:</strong> ${player.score} poäng`;
-            document.getElementById('guess-section').style.display = 'none'; // Dölj gissningsfältet
+            document.getElementById('quiz-output').innerHTML = feedback;
+            document.getElementById('scoring-section').style.display = 'none';
 
-            // Återställ gissningsfälten
-            document.getElementById('guess-artist').value = '';
-            document.getElementById('guess-title').value = '';
-            document.getElementById('guess-year').value = '';
+            // Gå vidare till nästa spelare (cirkulärt)
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            
+            // Återställ poängfältet och uppdatera dashboarden
+            document.getElementById('input-score').value = 0;
+            updateDashboard();
         }
+        
+        // Se till att spelarnamn och dashboard uppdateras när antal spelare ändras
+        document.getElementById('num-players').addEventListener('change', setupPlayers);
+        
+        // Lägg till en lyssnare på input-fälten för spelarnamn (måste köras efter setupPlayers)
+        document.getElementById('player-names-input').addEventListener('input', updateDashboard);
+        
+        // Kör setupPlayers igen för att hantera namnfälten vid laddning
+        setupPlayers();
+
     </script>
 </body>
 </html>
