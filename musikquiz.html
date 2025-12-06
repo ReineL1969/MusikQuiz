@@ -148,8 +148,7 @@
         // *******************************************************************
         // KONTROLLPUNKT 1: ACCESS TOKEN ÄR INKLUDERAD HÄR
         // Token är giltig i ca 1 timme.
-        const SPOTIFY_ACCESS_TOKEN = "BQD5RnGLbY5ifxE_45Kw2yqgDs0PDS0N_wwAZZiUwBmhO1ebupAm1CG8nNJTS0tpivranD3xhBGDtHbJFz7h8LhnVVvVdT6GTzmI_3sn_IwR4ZnnZivSy1Kfmdz...
-"; 
+        const SPOTIFY_ACCESS_TOKEN = "BQD5RnGLbY5ifxE_45Kw2yqgDs0PDS0N_wwAZZiUwBmhO1ebupAm1CG8nNJTS0tpivranD3xhBGDtHbJFz7h8LhnVVvVdT6GTzmI_3sn_IwR4ZnnZivSy1Kfmdz..."; 
         // *******************************************************************
 
         // Globala variabler för speldata
@@ -171,29 +170,60 @@
         // Initialiserar spelarlistan vid start
         setupPlayers(); 
 
-        /** * Hanterar inställning och visning av spelare (namn och poäng)
+        /** * Hanterar inställning av spelare (namn och poäng) baserat på num-players input.
+         * Denna funktion ritar om namnfälten.
          */
         function setupPlayers() {
-            const num = parseInt(document.getElementById('num-players').value);
+            const num = parseInt(document.getElementById('num-players').value) || 1;
             const nameInputDiv = document.getElementById('player-names-input');
             
-            // 1. Hantera namninmatningsfälten
+            // Spara nuvarande namn och poäng innan vi ritar om
+            const currentPlayersData = players.map(p => ({ ...p }));
+
+            // 1. Rita om namninmatningsfälten
             nameInputDiv.innerHTML = '';
-            // Skapa temporär array för att hålla reda på befintliga namn/poäng
-            let tempPlayers = [];
+            let newPlayers = [];
+            
             for (let i = 1; i <= num; i++) {
-                const existingPlayer = players.find(p => p.id === i) || { name: `Spelare ${i}`, score: 0 };
+                // Hämta befintlig data, annars standardvärde
+                const existingPlayer = currentPlayersData.find(p => p.id === i) || { id: i, name: `Spelare ${i}`, score: 0 };
                 
                 nameInputDiv.innerHTML += `
-                    <input type="text" id="player-name-${i}" placeholder="Namn Spelare ${i}" value="${existingPlayer.name}">
+                    <input type="text" 
+                           id="player-name-${i}" 
+                           data-player-id="${i}"
+                           placeholder="Namn Spelare ${i}" 
+                           value="${existingPlayer.name}"
+                           oninput="updatePlayerName(this)">
                 `;
-                tempPlayers.push({ id: i, name: existingPlayer.name, score: existingPlayer.score });
+                newPlayers.push({ id: i, name: existingPlayer.name, score: existingPlayer.score });
             }
             
-            // 2. Uppdatera spelarlistan i players[]
-            players = tempPlayers;
+            // Uppdatera den globala spelararrayen
+            players = newPlayers;
             
-            // Rita om Dashboard och markera aktuell spelare
+            // Återställ currentPlayerIndex om den är utanför gränsen
+            if (currentPlayerIndex >= players.length) {
+                currentPlayerIndex = 0;
+            }
+            
+            // Rita om Dashboard
+            updateDashboard();
+        }
+
+        /**
+         * Uppdaterar namnet på en specifik spelare i players[] när inputfältet ändras.
+         * @param {HTMLElement} inputElement - Inputfältet som ändrades.
+         */
+        function updatePlayerName(inputElement) {
+            const playerId = parseInt(inputElement.getAttribute('data-player-id'));
+            const newName = inputElement.value.trim();
+            const playerIndex = players.findIndex(p => p.id === playerId);
+
+            if (playerIndex !== -1) {
+                players[playerIndex].name = newName;
+            }
+            // Uppdatera Dashboard direkt för att visa det nya namnet
             updateDashboard();
         }
 
@@ -204,22 +234,16 @@
             const playerList = document.getElementById('player-scores');
             const status = document.getElementById('current-player-status');
             
-            // Spara eventuella nya namn från inputfälten
-            players.forEach((player, index) => {
-                const nameInput = document.getElementById(`player-name-${player.id}`);
-                if (nameInput) {
-                    player.name = nameInput.value.trim();
-                }
-            });
-            
             // Sortera spelare efter poäng (högst först)
             const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
             
             playerList.innerHTML = '';
             sortedPlayers.forEach((player, index) => {
-                const isCurrent = player.id === players[currentPlayerIndex]?.id;
+                // Hitta den aktiva spelaren baserat på index i den icke-sorterade listan
+                const isActivePlayer = players[currentPlayerIndex]?.id === player.id;
+                
                 playerList.innerHTML += `
-                    <li id="player-score-id-${player.id}" class="${isCurrent ? 'current-player' : ''}">
+                    <li id="player-score-id-${player.id}" class="${isActivePlayer ? 'current-player' : ''}">
                         <span>${player.name}</span>
                         <span>${player.score} poäng</span>
                     </li>
@@ -229,8 +253,8 @@
             const activePlayer = players[currentPlayerIndex];
             if (activePlayer) {
                 status.innerHTML = `<strong>Nästa:</strong> ${activePlayer.name}'s tur att gissa.`;
-                // Se till att den aktiva spelaren är markerad korrekt efter sortering
-                document.getElementById(`player-score-id-${activePlayer.id}`)?.classList.add('current-player');
+            } else {
+                 status.innerHTML = `Konfigurera spelet och klicka Starta Runda.`;
             }
         }
         
@@ -250,24 +274,35 @@
          * Startar en ny omgång genom att hämta och spela upp en låt.
          */
         async function startNewRound() {
-            setupPlayers(); // Spara eventuella nya spelarnamn och uppdatera listan
-            
+            // Se till att spelarnamnen sparas innan rundan startar
+            const num = parseInt(document.getElementById('num-players').value);
+            for(let i = 1; i <= num; i++) {
+                const input = document.getElementById(`player-name-${i}`);
+                if (input) {
+                    const playerIndex = players.findIndex(p => p.id === i);
+                    if (playerIndex !== -1) {
+                        players[playerIndex].name = input.value.trim();
+                    }
+                }
+            }
+            updateDashboard(); // Uppdatera så att alla namn sparas och visas korrekt
+
             const selectedDecade = selectRandomDecade();
             const outputElement = document.getElementById('quiz-output');
             
-            document.getElementById('scoring-section').style.display = 'none'; // Dölj poängfältet
+            document.getElementById('scoring-section').style.display = 'none'; 
 
-            if (players.length === 0 || players[0].name === 'Spelare 1') {
-                // Enkel check för att säkerställa att spelare är konfigurerade
-                outputElement.innerHTML = `<p class="error">❌ Vänligen ange spelare (minst en) och deras namn.</p>`;
+            // Kontroller innan start
+            if (players.length === 0 || !players[currentPlayerIndex] || players[currentPlayerIndex].name.trim() === '' || players[currentPlayerIndex].name.startsWith('Spelare')) {
+                outputElement.innerHTML = `<p class="error">❌ Vänligen ange spelare och deras namn innan du startar.</p>`;
                 return;
             }
             if (!selectedDecade) {
                 outputElement.innerHTML = `<p class="error">❌ Vänligen välj minst ett årtionde att spela från.</p>`;
                 return;
             }
-            if (SPOTIFY_ACCESS_TOKEN.length < 50) { // Enkel längdkontroll
-                outputElement.innerHTML = `<p class="error">❌ FEL: Din Access Token verkar vara inkorrekt eller utgången.</p>`;
+            if (SPOTIFY_ACCESS_TOKEN.length < 50) { 
+                outputElement.innerHTML = `<p class="error">❌ FEL: Din Access Token verkar vara inkorrekt eller utgången. </p>`;
                 return;
             }
             
@@ -366,13 +401,14 @@
             updateDashboard();
         }
         
+        // --- Event Listeners ---
+        
         // Se till att spelarnamn och dashboard uppdateras när antal spelare ändras
         document.getElementById('num-players').addEventListener('change', setupPlayers);
         
-        // Lägg till en lyssnare på input-fälten för spelarnamn (måste köras efter setupPlayers)
-        document.getElementById('player-names-input').addEventListener('input', updateDashboard);
+        // Lägg till en lyssnare på input-fälten för spelarnamn (hanteras nu via oninput i HTML)
         
-        // Kör setupPlayers igen för att hantera namnfälten vid laddning
+        // Initialisering
         setupPlayers();
 
     </script>
