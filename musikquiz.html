@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <title>Musikquiz med Spotify‑preview</title>
+  <title>Musikquiz med Spotify-klient</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -39,15 +39,11 @@
     .wrong {
       color: #f44336;
     }
-    audio {
-      margin-top: 10px;
-      width: 100%;
-    }
   </style>
 </head>
 <body>
   <h1>Spotify Musikquiz</h1>
-  <p>Välj årtionde, ladda spellistan och starta quizet. Endast låtar med förhandslyssning används.</p>
+  <p>Välj årtionde, ladda spellistan och starta quizet. Låtarna spelas upp i din Spotify‑klient.</p>
 
   <div class="controls">
     <label for="decade">Välj årtionde:</label>
@@ -68,7 +64,7 @@
 
   <div class="question" id="questionBox" style="display:none;">
     <div id="questionText"></div>
-    <audio id="audioPlayer" controls></audio>
+    <button id="playInSpotifyBtn">Spela låt i Spotify</button>
     <div class="answers" id="answersBox"></div>
   </div>
 
@@ -89,22 +85,22 @@
       '20s': '1638KZlvcvyyEJ15S8erge'   // All Out 2020s
     };
 
-    const decadeSelect    = document.getElementById('decade');
-    const loadPlaylistBtn = document.getElementById('loadPlaylistBtn');
-    const startQuizBtn    = document.getElementById('startQuizBtn');
-    const statusBox       = document.getElementById('statusBox');
-    const questionBox     = document.getElementById('questionBox');
-    const questionText    = document.getElementById('questionText');
-    const answersBox      = document.getElementById('answersBox');
-    const audioPlayer     = document.getElementById('audioPlayer');
-    const resultBox       = document.getElementById('resultBox');
+    const decadeSelect       = document.getElementById('decade');
+    const loadPlaylistBtn    = document.getElementById('loadPlaylistBtn');
+    const startQuizBtn       = document.getElementById('startQuizBtn');
+    const statusBox          = document.getElementById('statusBox');
+    const questionBox        = document.getElementById('questionBox');
+    const questionText       = document.getElementById('questionText');
+    const playInSpotifyBtn   = document.getElementById('playInSpotifyBtn');
+    const answersBox         = document.getElementById('answersBox');
+    const resultBox          = document.getElementById('resultBox');
 
-    let currentTracksWithPreview = [];
+    let currentTracks = [];
     let currentQuestion = null;
     let score = 0;
     let questionsAsked = 0;
 
-    async function fetchPlaylistTracksWithPreview(playlistId, maxTotal = 150) {
+    async function fetchPlaylistTracks(playlistId, maxTotal = 150) {
       const headers = { 'Authorization': 'Bearer ' + ACCESS_TOKEN };
       let allItems = [];
       let nextUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
@@ -119,16 +115,24 @@
         nextUrl = data.next;
       }
 
-      const tracksWithPreview = allItems
+      // Plocka ut giltiga track‑objekt (vissa items kan vara null/removed)
+      const tracks = allItems
         .map(item => item.track)
-        .filter(track => track && track.preview_url);  // preview-url finns
+        .filter(track =>
+          track &&
+          track.id &&
+          track.name &&
+          Array.isArray(track.artists) &&
+          track.external_urls &&
+          track.external_urls.spotify
+        );
 
-      return tracksWithPreview;
+      return tracks;
     }
 
     function createQuestion(tracks) {
       if (tracks.length < 4) {
-        throw new Error('För få låtar med förhandslyssning för att skapa fråga.');
+        throw new Error('För få låtar i spellistan för att skapa fråga.');
       }
 
       const usedIndices = new Set();
@@ -147,11 +151,17 @@
       questionBox.style.display = 'block';
       resultBox.style.display = 'none';
 
-      questionText.textContent = 'Vilken låt hör du?';
-      audioPlayer.src = question.correctTrack.preview_url;
-      audioPlayer.play().catch(() => { /* autoplay kan blockeras */ });
-
+      questionText.textContent =
+        'Klicka ”Spela låt i Spotify”, lyssna i klienten och gissa sedan här:';
       answersBox.innerHTML = '';
+
+      // Uppdatera play‑knappen så den öppnar rätt låt i Spotify
+      playInSpotifyBtn.onclick = () => {
+        const url = question.correctTrack.external_urls.spotify; // web‑länk som öppnar klienten
+        window.open(url, '_blank');
+      };
+
+      // Svarsalternativ
       question.options.forEach((track, idx) => {
         const btn = document.createElement('button');
         btn.textContent = `${idx + 1}. ${track.name} – ${track.artists.map(a => a.name).join(', ')}`;
@@ -181,7 +191,7 @@
       const nextBtn = document.createElement('button');
       nextBtn.textContent = 'Nästa fråga';
       nextBtn.addEventListener('click', () => {
-        currentQuestion = createQuestion(currentTracksWithPreview);
+        currentQuestion = createQuestion(currentTracks);
         showQuestion(currentQuestion);
       });
       resultBox.appendChild(nextBtn);
@@ -199,13 +209,13 @@
       resultBox.style.display = 'none';
 
       try {
-        const tracks = await fetchPlaylistTracksWithPreview(playlistId);
-        currentTracksWithPreview = tracks;
+        const tracks = await fetchPlaylistTracks(playlistId);
+        currentTracks = tracks;
         if (tracks.length === 0) {
-          statusBox.textContent = 'Inga låtar med förhandslyssning hittades i den här spellistan.';
+          statusBox.textContent = 'Inga spelbara låtar hittades i den här spellistan.';
           return;
         }
-        statusBox.textContent = `Laddat ${tracks.length} låtar med förhandslyssning för ${decade}.`;
+        statusBox.textContent = `Laddat ${tracks.length} låtar för ${decade}.`;
         startQuizBtn.disabled = false;
         score = 0;
         questionsAsked = 0;
@@ -216,11 +226,11 @@
     });
 
     startQuizBtn.addEventListener('click', () => {
-      if (!currentTracksWithPreview || currentTracksWithPreview.length < 4) {
-        statusBox.textContent = 'För få låtar med preview. Ladda en annan spellista eller försök igen.';
+      if (!currentTracks || currentTracks.length < 4) {
+        statusBox.textContent = 'För få låtar. Ladda en annan spellista eller försök igen.';
         return;
       }
-      currentQuestion = createQuestion(currentTracksWithPreview);
+      currentQuestion = createQuestion(currentTracks);
       showQuestion(currentQuestion);
     });
   </script>
