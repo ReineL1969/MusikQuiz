@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <title>Musikquiz med Spotify-klient</title>
+  <title>Spotify Musikquiz</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -68,6 +68,7 @@
 <body>
   <h1>Spotify Musikquiz</h1>
   <p>Välj årtionde, sätt spelare och kör quizet. Låtarna spelas upp i din Spotify‑klient.</p>
+
   <!-- Spelare / scoreboard -->
   <div class="panel" id="playersPanel">
     <h2 class="section-title">Spelare och scoreboard</h2>
@@ -117,6 +118,7 @@
     <div id="perQuestionScoring"></div>
     <button id="applyScoresBtn">Spara poäng och gå vidare</button>
   </div>
+
   <script>
     // Sätt in ett giltigt Spotify access token här.
     const ACCESS_TOKEN = 'BQAnjAxmnpZDVZYlaK1Dmo1jpdZZjOWvrX9g9u7Y_7GwBZ76EBNrOpujrWbMHoHgStEXKlwLQMFOObxvs6cyNe4btk6fWI41_A7ewh17JWzB-C439O6gwtgFmpeQbwpgBBkjInGz5aQ';
@@ -133,21 +135,21 @@
     };
 
     // DOM‑element
-    const decadeSelect        = document.getElementById('decade');
-    const loadPlaylistBtn     = document.getElementById('loadPlaylistBtn');
-    const startQuizBtn        = document.getElementById('startQuizBtn');
-    const statusBox           = document.getElementById('statusBox');
-    const questionBox         = document.getElementById('questionBox');
-    const questionText        = document.getElementById('questionText');
-    const playInSpotifyBtn    = document.getElementById('playInSpotifyBtn');
-    const answersBox          = document.getElementById('answersBox');
-    const resultBox           = document.getElementById('resultBox');
-    const resultText          = document.getElementById('resultText');
-    const perQuestionScoring  = document.getElementById('perQuestionScoring');
-    const applyScoresBtn      = document.getElementById('applyScoresBtn');
+    const decadeSelect         = document.getElementById('decade');
+    const loadPlaylistBtn      = document.getElementById('loadPlaylistBtn');
+    const startQuizBtn         = document.getElementById('startQuizBtn');
+    const statusBox            = document.getElementById('statusBox');
+    const questionBox          = document.getElementById('questionBox');
+    const questionText         = document.getElementById('questionText');
+    const playInSpotifyBtn     = document.getElementById('playInSpotifyBtn');
+    const answersBox           = document.getElementById('answersBox');
+    const resultBox            = document.getElementById('resultBox');
+    const resultText           = document.getElementById('resultText');
+    const perQuestionScoring   = document.getElementById('perQuestionScoring');
+    const applyScoresBtn       = document.getElementById('applyScoresBtn');
 
-    const numPlayersInput     = document.getElementById('numPlayers');
-    const setPlayersBtn       = document.getElementById('setPlayersBtn');
+    const numPlayersInput      = document.getElementById('numPlayers');
+    const setPlayersBtn        = document.getElementById('setPlayersBtn');
     const playerNamesContainer = document.getElementById('playerNamesContainer');
     const scoreboardContainer  = document.getElementById('scoreboardContainer');
 
@@ -238,7 +240,7 @@
       thead.appendChild(trHead);
       table.appendChild(thead);
 
-            const tbody = document.createElement('tbody');
+      const tbody = document.createElement('tbody');
       players.forEach(p => {
         const tr = document.createElement('tr');
 
@@ -251,7 +253,7 @@
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.dataset.playerId = String(p.id);
-          cb.dataset.scoreType = type; // artist/title/year
+          cb.dataset.scoreType = type;
           td.appendChild(cb);
           tr.appendChild(td);
         });
@@ -261,6 +263,13 @@
       table.appendChild(tbody);
 
       perQuestionScoring.appendChild(table);
+    }
+
+    // --- Hjälpfunktion för årtal -----------------------------------
+
+    function getTrackYear(track) {
+      if (!track || !track.album || !track.album.release_date) return '?';
+      return track.album.release_date.slice(0, 4); // t.ex. "1981-12-15" -> "1981"
     }
 
     // --- Spotify / quizlogik ---------------------------------------
@@ -294,12 +303,6 @@
       return tracks;
     }
 
-function getTrackYear(track) {
-  if (!track || !track.album || !track.album.release_date) return '?';
-  return track.album.release_date.slice(0, 4); // "1981-12-15" -> "1981"
-}
-
-
     function createQuestion(tracks) {
       if (tracks.length < 4) {
         throw new Error('För få låtar i spellistan för att skapa fråga.');
@@ -315,7 +318,7 @@ function getTrackYear(track) {
       const options = indices.map(i => tracks[i]);
 
       return { correctTrack, options };
-    
+    }
 
     function showQuestion(question) {
       questionBox.style.display = 'block';
@@ -331,42 +334,38 @@ function getTrackYear(track) {
       };
 
       question.options.forEach((track, idx) => {
+        const year = getTrackYear(track);
         const btn = document.createElement('button');
-question.options.forEach((track, idx) => {
-  const year = getTrackYear(track);
-  const btn = document.createElement('button');
-  btn.textContent =
-    `${idx + 1}. ${track.name} – ` +
-    `${track.artists.map(a => a.name).join(', ')} (${year})`;
-  btn.addEventListener('click', () => handleAnswer(track));
-  answersBox.appendChild(btn);
-});        
-    
+        btn.textContent =
+          `${idx + 1}. ${track.name} – ` +
+          `${track.artists.map(a => a.name).join(', ')} (${year})`;
+        btn.addEventListener('click', () => handleAnswer(track));
+        answersBox.appendChild(btn);
+      });
+    }
 
     function handleAnswer(chosenTrack) {
-  questionsAsked++;
-  const correct = chosenTrack.id === currentQuestion.correctTrack.id;
-  const year = getTrackYear(currentQuestion.correctTrack);
+      questionsAsked++;
+      const correct = chosenTrack.id === currentQuestion.correctTrack.id;
+      const year = getTrackYear(currentQuestion.correctTrack);
 
-  const msg = document.createElement('div');
-  msg.innerHTML = correct
-    ? `<span class="correct">Rätt gissat!</span>`
-    : `<span class="wrong">Fel gissat.</span>`;
+      const msg = document.createElement('div');
+      msg.innerHTML = correct
+        ? `<span class="correct">Rätt gissat!</span>`
+        : `<span class="wrong">Fel gissat.</span>`;
 
-  const info = document.createElement('div');
-  info.textContent =
-    `Rätt svar: ${currentQuestion.correctTrack.name} – ` +
-    `${currentQuestion.correctTrack.artists.map(a => a.name).join(', ')} ` +
-    `(${year}).`;
+      const info = document.createElement('div');
+      info.textContent =
+        `Rätt svar: ${currentQuestion.correctTrack.name} – ` +
+        `${currentQuestion.correctTrack.artists.map(a => a.name).join(', ')} ` +
+        `(${year}).`;
 
-  resultText.innerHTML = '';
-  resultText.appendChild(msg);
-  resultText.appendChild(info);
+      resultText.innerHTML = '';
+      resultText.appendChild(msg);
+      resultText.appendChild(info);
 
-  resultBox.style.display = 'block';
-  renderPerQuestionScoring();
-}
-
+      resultBox.style.display = 'block';
+      renderPerQuestionScoring();
     }
 
     function applyScoresForQuestion() {
@@ -382,7 +381,6 @@ question.options.forEach((track, idx) => {
 
       renderScoreboard();
 
-      // Nästa fråga direkt
       if (!currentTracks || currentTracks.length < 4) {
         statusBox.textContent = 'För få låtar för fler frågor.';
         return;
@@ -438,9 +436,8 @@ question.options.forEach((track, idx) => {
       applyScoresForQuestion();
     });
 
-    // Initiera default‑spelare vid start
+    // Initiera standardspelare när sidan laddas
     initPlayers();
   </script>
 </body>
 </html>
-
