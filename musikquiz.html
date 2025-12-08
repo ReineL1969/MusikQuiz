@@ -294,6 +294,12 @@
       return tracks;
     }
 
+function getTrackYear(track) {
+  if (!track || !track.album || !track.album.release_date) return '?';
+  return track.album.release_date.slice(0, 4); // "1981-12-15" -> "1981"
+}
+
+
     function createQuestion(tracks) {
       if (tracks.length < 4) {
         throw new Error('För få låtar i spellistan för att skapa fråga.');
@@ -326,34 +332,41 @@
 
       question.options.forEach((track, idx) => {
         const btn = document.createElement('button');
-        btn.textContent =
-          `${idx + 1}. ${track.name} – ${track.artists.map(a => a.name).join(', ')}`;
-        btn.addEventListener('click', () => handleAnswer(track));
-        answersBox.appendChild(btn);
-      });
+question.options.forEach((track, idx) => {
+  const year = getTrackYear(track);
+  const btn = document.createElement('button');
+  btn.textContent =
+    `${idx + 1}. ${track.name} – ` +
+    `${track.artists.map(a => a.name).join(', ')} (${year})`;
+  btn.addEventListener('click', () => handleAnswer(track));
+  answersBox.appendChild(btn);
+});        
     }
 
     function handleAnswer(chosenTrack) {
-      questionsAsked++;
-      const correct = chosenTrack.id === currentQuestion.correctTrack.id;
+  questionsAsked++;
+  const correct = chosenTrack.id === currentQuestion.correctTrack.id;
+  const year = getTrackYear(currentQuestion.correctTrack);
 
-      const msg = document.createElement('div');
-      msg.innerHTML = correct
-        ? `<span class="correct">Rätt gissat!</span>`
-        : `<span class="wrong">Fel gissat.</span>`;
-      const info = document.createElement('div');
-      info.textContent =
-        `Rätt svar: ${currentQuestion.correctTrack.name} – ` +
-        `${currentQuestion.correctTrack.artists.map(a => a.name).join(', ')}.`;
+  const msg = document.createElement('div');
+  msg.innerHTML = correct
+    ? `<span class="correct">Rätt gissat!</span>`
+    : `<span class="wrong">Fel gissat.</span>`;
 
-      resultText.innerHTML = '';
-      resultText.appendChild(msg);
-      resultText.appendChild(info);
+  const info = document.createElement('div');
+  info.textContent =
+    `Rätt svar: ${currentQuestion.correctTrack.name} – ` +
+    `${currentQuestion.correctTrack.artists.map(a => a.name).join(', ')} ` +
+    `(${year}).`;
 
-      resultBox.style.display = 'block';
+  resultText.innerHTML = '';
+  resultText.appendChild(msg);
+  resultText.appendChild(info);
 
-      // rensa ev. gamla kryssrutor och bygg om formuläret
-      renderPerQuestionScoring();
+  resultBox.style.display = 'block';
+  renderPerQuestionScoring();
+}
+
     }
 
     function applyScoresForQuestion() {
