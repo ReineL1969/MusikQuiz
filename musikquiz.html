@@ -315,7 +315,7 @@ function getTrackYear(track) {
       const options = indices.map(i => tracks[i]);
 
       return { correctTrack, options };
-    }
+    
 
     function showQuestion(question) {
       questionBox.style.display = 'block';
@@ -341,7 +341,7 @@ question.options.forEach((track, idx) => {
   btn.addEventListener('click', () => handleAnswer(track));
   answersBox.appendChild(btn);
 });        
-    }
+    
 
     function handleAnswer(chosenTrack) {
   questionsAsked++;
